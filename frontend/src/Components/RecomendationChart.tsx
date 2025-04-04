@@ -30,12 +30,33 @@ const RecommendationChart: React.FC<RecommendationChartProps> = ({
       `http://localhost:5000/api/Recommender/contentRecommendation/${contentId}`
     );
 
-    Promise.all([fetchCollabRecommendations, fetchContentRecommendations])
-      .then(([collabRes, contentRes]) => {
-        setCollabRecommendations(collabRes.data);
-        setContentRecommendations(contentRes.data);
+    Promise.allSettled([
+      fetchCollabRecommendations,
+      fetchContentRecommendations,
+    ])
+      .then((results) => {
+        const [collabResult, contentResult] = results;
+
+        if (collabResult.status === "fulfilled") {
+          setCollabRecommendations(collabResult.value.data);
+        } else {
+          setCollabRecommendations([]);
+        }
+
+        if (contentResult.status === "fulfilled") {
+          setContentRecommendations(contentResult.value.data);
+        } else {
+          setContentRecommendations([]);
+        }
+
+        if (
+          collabResult.status === "rejected" &&
+          contentResult.status === "rejected"
+        ) {
+          setError("Error fetching recommendations");
+        }
       })
-      .catch(() => setError("Error fetching recommendations"))
+      .catch(() => setError("Unexpected error"))
       .finally(() => setLoading(false));
   }, [contentId]);
 
